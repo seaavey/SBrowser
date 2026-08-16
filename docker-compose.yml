@@ -1,0 +1,42 @@
+services:
+  sbrowser:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sbrowser-api
+    restart: unless-stopped
+    ports:
+      - "${SBROWSER_PORT:-3000}:3000"
+    environment:
+      - SBROWSER_HOST=0.0.0.0
+      - SBROWSER_PORT=3000
+      - LIGHTPANDA_PATH=/usr/local/bin/lightpanda
+      - REDIS_URL=redis://redis:6379
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_REQUESTS=60
+      - RATE_LIMIT_WINDOW_SECS=60
+      - CACHE_ENABLED=true
+      - CACHE_SEARCH_TTL_SECS=600
+      - CACHE_FETCH_TTL_SECS=3600
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: sbrowser-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis_data:
+    driver: local
