@@ -1,43 +1,58 @@
-# 🌐 SBrowser — Web Search & Scraping API with Lightpanda
+# 🌐 SBrowser — REST API Pencarian Web & Scraping dengan Lightpanda
 
-**SBrowser** adalah layanan REST API web search & scraping berperforma tinggi yang dibangun dengan **Rust** (Axum + Tokio), ditenagai oleh headless browser **[Lightpanda](https://github.com/lightpanda-io/browser)** (browser AI-native berbasis Zig), serta dilindungi oleh **Redis Anti-DDoS Rate Limiting & Caching Shield**.
+[![CI](https://github.com/seaavey/SBrowser/actions/workflows/ci.yml/badge.svg)](https://github.com/seaavey/SBrowser/actions/workflows/ci.yml)
+[![Docker](https://github.com/seaavey/SBrowser/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/seaavey/SBrowser/actions/workflows/docker-publish.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+**SBrowser** adalah layanan REST API pencarian web (*web search*) dan ekstraksi konten (*web scraping*) berperforma tinggi yang dibangun menggunakan bahasa pemrograman **Rust** ([Axum](https://github.com/tokio-rs/axum) + [Tokio](https://tokio.rs)).
+
+Layanan ini ditenagai oleh headless browser berbasis Zig, **[Lightpanda](https://github.com/lightpanda-io/browser)**, untuk rendering JavaScript ultra-cepat dan ekstraksi Markdown bersih, serta dilengkapi dengan perisai **Redis Anti-DDoS (Rate Limiter & Caching)**.
 
 ---
 
 ## ✨ Fitur Utama
 
-- 🔍 **Brave Web Search**: Pencarian web independen berkecepatan tinggi melalui **Brave Search**.
-- ⚡ **Lightpanda Headless Browser Integration**: Rendering JavaScript ultra-cepat dan konversi langsung ke Markdown bersih atau HTML yang telah di-render.
-- 🧠 **AI & LLM / RAG Ready**: Fitur **Deep Markdown Content Scrape** otomatis mengambil dan merender konten halaman web teratas ke format Markdown untuk langsung dijadikan konteks prompt LLM / agent.
-- 🛡️ **Redis Anti-DDoS & Rate Limiting**: Perlindungan IP-based rate limiting otomatis (HTTP 429 Too Many Requests) untuk mencegah flood/serangan DDoS.
-- ⚡ **Redis Result Caching**: Caching instan hasil pencarian dan render halaman untuk respon sub-milidetik dan hemat CPU.
-- 🐳 **Docker & Docker Compose Ready**: Siap deploy sekali perintah dengan `docker compose up -d`.
-- ⚡ **Fast & Lightweight REST API**: Server API murni tanpa frontend overhead dengan endpoint `/api/v1/search`, `/api/v1/fetch`, `/api/v1/engines`, dan `/health`.
+- 🔍 **Pencarian Web Brave (Brave Search)**: Pencarian web independen dan berkecepatan tinggi tanpa pelacak.
+- ⚡ **Integrasi Headless Browser Lightpanda**: Rendering halaman web berbasis JavaScript super cepat dan langsung dikonversi ke format Markdown bersih atau HTML yang telah di-render.
+- 🧠 **AI & LLM / RAG Ready**: Fitur **Deep Markdown Content Scrape** otomatis merender konten halaman web teratas ke format Markdown untuk langsung dijadikan konteks prompt LLM / agen AI.
+- 🛡️ **Redis Anti-DDoS & Rate Limiting**: Pembatasan request berbasis IP otomatis (*HTTP 429 Too Many Requests*) untuk mencegah serangan *brute force* dan *flood/DDoS*.
+- ⚡ **Redis Result Caching**: Caching cerdas untuk hasil pencarian dan render halaman dengan respon sub-milidetik (< 1ms) serta menghemat penggunaan CPU server.
+- 🐳 **Siap Docker & Docker Compose**: Deployment instan satu perintah (`docker compose up -d`).
+- 🚀 **REST API Murni**: Ringan, cepat, tanpa dependensi frontend (*API only*).
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Panduan Memulai Cepat (Quick Start)
 
-### Opsi 1: Menjalankan dengan Docker Compose (Direkomendasikan)
+### Opsi 1: Menggunakan Docker Compose (Direkomendasikan)
 
-Tinggal jalankan satu perintah, SBrowser dan Redis langsung aktif:
+Cukup jalankan satu perintah berikut di root folder:
 
 ```bash
 docker compose up -d --build
 ```
 
-Cek status layanan:
+Perintah ini akan otomatis:
+1. Mengompilasi binary Rust SBrowser dalam container.
+2. Mengunduh binary headless browser Lightpanda terbaru.
+3. Menjalankan service SBrowser dan Redis.
+
+Untuk melihat log kontainer:
 ```bash
-docker compose ps
 docker compose logs -f
+```
+
+Untuk menghentikan kontainer:
+```bash
+docker compose down
 ```
 
 ---
 
-### Opsi 2: Menjalankan Lokal (Native Cargo)
+### Opsi 2: Menjalankan Secara Lokal (Native Cargo)
 
 #### 1. Prasyarat & Binary Lightpanda
-Binary `lightpanda` sudah terpasang di folder `bin/lightpanda`. Jika ingin mengunduh ulang:
+Binary `lightpanda` sudah terpasang di folder `bin/lightpanda`. Jika ingin mengunduh ulang versi terbaru:
 ```bash
 curl -fsSL https://github.com/lightpanda-io/browser/releases/download/nightly/lightpanda-x86_64-linux -o bin/lightpanda
 chmod +x bin/lightpanda
@@ -48,25 +63,29 @@ chmod +x bin/lightpanda
 cargo run
 ```
 
+Server akan aktif secara default di `http://0.0.0.0:3000`.
+
 ---
 
-## 📡 API Endpoints
+## 📡 Dokumentasi Endpoint API
 
-### 1. `GET /api/v1/search`
+### 1. Pencarian Web (`GET /api/v1/search`)
 
-Melakukan pencarian web menggunakan Brave Search.
+Melakukan pencarian web menggunakan Brave Search dan mengekstrak daftar hasil pencarian.
 
 #### Query Parameters:
-- `q` (_string, required_): Kata kunci pencarian.
-- `limit` (_number, optional_): Jumlah hasil (default `10`).
-- `scrape` (_boolean, optional_): Jika `true`, Lightpanda akan merender isi halaman teratas ke format Markdown (default `false`).
-- `scrape_limit` (_number, optional_): Batas jumlah halaman yang di-scrape kontennya (default `3`).
+| Parameter | Tipe | Default | Wajib? | Keterangan |
+|---|---|---|---|---|
+| `q` | `string` | - | **Ya** | Kata kunci pencarian. |
+| `limit` | `number` | `10` | Tidak | Jumlah hasil pencarian yang dikembalikan. |
+| `scrape` | `boolean` | `false` | Tidak | Jika `true`, konten halaman teratas akan di-render ke format Markdown. |
+| `scrape_limit` | `number` | `3` | Tidak | Batas jumlah halaman yang di-scrape kontennya. |
 
-#### Contoh cURL:
+#### Contoh Request (cURL):
 ```bash
 curl -G "http://localhost:3000/api/v1/search" \
   --data-urlencode "q=rust tokio tutorial" \
-  -d "limit=5" \
+  -d "limit=3" \
   -d "scrape=true"
 ```
 
@@ -75,7 +94,7 @@ curl -G "http://localhost:3000/api/v1/search" \
 {
   "query": "rust tokio tutorial",
   "engine": "brave",
-  "total_results": 5,
+  "total_results": 3,
   "took_ms": 420,
   "results": [
     {
@@ -91,9 +110,9 @@ curl -G "http://localhost:3000/api/v1/search" \
 
 ---
 
-### 2. `POST /api/v1/search`
+### 2. Pencarian Web via JSON (`POST /api/v1/search`)
 
-Melakukan pencarian dengan payload JSON.
+Melakukan pencarian menggunakan payload JSON pada body request.
 
 ```bash
 curl -X POST "http://localhost:3000/api/v1/search" \
@@ -108,33 +127,46 @@ curl -X POST "http://localhost:3000/api/v1/search" \
 
 ---
 
-### 3. `GET /api/v1/fetch`
+### 3. Render & Ekstraksi Halaman (`GET /api/v1/fetch`)
 
-Merender URL apapun menggunakan Lightpanda dan mengembalikan Markdown atau HTML.
+Merender URL apa pun menggunakan headless browser Lightpanda dan mengembalikannya dalam format Markdown atau HTML.
 
 #### Query Parameters:
-- `url` (_string, required_): Target URL.
-- `format` (_string, optional_): `markdown` (default) atau `html`.
-- `wait_ms` (_number, optional_): Waktu tunggu rendering dalam ms (default `3000`).
+| Parameter | Tipe | Default | Wajib? | Keterangan |
+|---|---|---|---|---|
+| `url` | `string` | - | **Ya** | URL halaman web yang ingin di-render. |
+| `format` | `string` | `markdown` | Tidak | Format output: `markdown` atau `html`. |
+| `wait_ms` | `number` | `3000` | Tidak | Waktu tunggu rendering JavaScript dalam milidetik. |
 
-#### Contoh cURL:
+#### Contoh Request (cURL):
 ```bash
 curl -G "http://localhost:3000/api/v1/fetch" \
-  --data-urlencode "url=https://github.com/lightpanda-io/browser" \
+  --data-urlencode "url=https://news.ycombinator.com" \
   -d "format=markdown"
+```
+
+#### Contoh Response:
+```json
+{
+  "url": "https://news.ycombinator.com",
+  "format": "markdown",
+  "content": "# Hacker News\n\n| 1. | [Show HN: ...] | ...",
+  "length": 19111,
+  "took_ms": 1784
+}
 ```
 
 ---
 
-### 4. `GET /health`
+### 4. Status Server & Health Check (`GET /health` atau `GET /`)
 
-Mengecek status server, binary Lightpanda, dan status koneksi Redis.
+Mengecek status kesehatan server, kesiapan binary Lightpanda, status koneksi Redis, dan lama waktu aktif server (*uptime*).
 
 ```bash
 curl "http://localhost:3000/health"
 ```
 
-**Contoh Response:**
+#### Contoh Response:
 ```json
 {
   "status": "ok",
@@ -148,14 +180,14 @@ curl "http://localhost:3000/health"
 
 ---
 
-## 🛡️ Anti-DDoS & Rate Limiting Headers
+## 🛡️ Header Anti-DDoS & Rate Limiting
 
-Ketika Redis aktif, setiap response menyertakan header Rate Limit:
-- `X-RateLimit-Limit`: Batas maksimum request per window.
-- `X-RateLimit-Remaining`: Sisa kuota request untuk IP Anda.
-- `X-RateLimit-Reset`: Waktu detik sebelum kuota di-reset.
+Ketika koneksi Redis aktif, setiap response API akan menyertakan header penanda kuota:
+- `X-RateLimit-Limit`: Jumlah batas request per periode jendela waktu.
+- `X-RateLimit-Remaining`: Sisa kuota request untuk alamat IP pengirim.
+- `X-RateLimit-Reset`: Jumlah detik tersisa sebelum kuota di-reset kembali.
 
-Jika request melebihi batas, server mengembalikan status **HTTP 429 Too Many Requests**:
+Jika request melebihi batas yang ditentukan, server otomatis merespons dengan status **HTTP 429 Too Many Requests**:
 ```json
 {
   "error": {
@@ -168,25 +200,36 @@ Jika request melebihi batas, server mengembalikan status **HTTP 429 Too Many Req
 
 ---
 
-## 🛠️ Konfigurasi Environment Variables
+## ⚙️ Konfigurasi Environment Variables
 
-Semua konfigurasi dapat diatur melalui file `.env` atau environment variables:
+Semua pengaturan server dapat dikonfigurasi melalui file `.env` atau environment variable:
 
-```env
-# Server
-SBROWSER_HOST=0.0.0.0
-SBROWSER_PORT=3000
-LIGHTPANDA_PATH=./bin/lightpanda
-SBROWSER_TIMEOUT_MS=15000
-SBROWSER_MAX_CONCURRENT=8
-# HTTP_PROXY=http://proxy-host:port
+| Variabel | Default | Deskripsi |
+|---|---|---|
+| `SBROWSER_HOST` | `0.0.0.0` | Host IP binding server. |
+| `SBROWSER_PORT` | `3000` | Port listening server. |
+| `LIGHTPANDA_PATH` | `./bin/lightpanda` | Jalur lokasi file binary Lightpanda. |
+| `SBROWSER_TIMEOUT_MS` | `15000` | Batas timeout rendering browser (ms). |
+| `SBROWSER_MAX_CONCURRENT` | `8` | Batas konkurensi proses headless browser bersamaan. |
+| `HTTP_PROXY` | - | Proxy HTTP opsional (`http://proxy:port`). |
+| `REDIS_URL` | `redis://127.0.0.1:6379` | URL koneksi server Redis (opsional). |
+| `RATE_LIMIT_ENABLED` | `true` | Mengaktifkan/menonaktifkan proteksi rate limit. |
+| `RATE_LIMIT_REQUESTS` | `60` | Jumlah batas request per IP dalam satu jendela waktu. |
+| `RATE_LIMIT_WINDOW_SECS` | `60` | Durasi jendela waktu rate limit (detik). |
+| `CACHE_ENABLED` | `true` | Mengaktifkan/menonaktifkan fitur caching hasil di Redis. |
+| `CACHE_SEARCH_TTL_SECS` | `600` | Durasi cache hasil pencarian (10 menit). |
+| `CACHE_FETCH_TTL_SECS` | `3600` | Durasi cache render halaman (1 jam). |
 
-# Redis Shield & Caching
-REDIS_URL=redis://127.0.0.1:6379
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_REQUESTS=60
-RATE_LIMIT_WINDOW_SECS=60
-CACHE_ENABLED=true
-CACHE_SEARCH_TTL_SECS=600
-CACHE_FETCH_TTL_SECS=3600
-```
+---
+
+## 🔄 Alur CI/CD (GitHub Actions)
+
+Proyek ini telah dilengkapi dengan workflow otomatis di folder `.github/workflows/`:
+1. **CI (`ci.yml`)**: Otomatis menjalankan `cargo check`, `cargo test`, dan uji build image Docker pada setiap push & pull request ke branch `main`.
+2. **CD (`docker-publish.yml`)**: Otomatis membangun image Docker multi-tag dan mempublikasikannya ke **GitHub Container Registry (GHCR)** saat git tag baru (`v*`) dibuat.
+
+---
+
+## 📄 Lisensi
+
+Didistribusikan di bawah lisensi MIT. Silakan gunakan secara bebas untuk keperluan personal maupun komersial.
